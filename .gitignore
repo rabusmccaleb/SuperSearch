@@ -1,0 +1,4 @@
+
+Static/AppConstants.swift
+*.plist
+Static/StyleSingleton.swift
