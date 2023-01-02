@@ -2,3 +2,5 @@
 Static/AppConstants.swift
 *.plist
 Static/StyleSingleton.swift
+Views/VCExtensions/VCImagePickerExtension.swift
+Extensions.swift

@@ -60,20 +60,20 @@ class WebQueryView : UIViewController, WKNavigationDelegate, WKUIDelegate {
     }
     
     func setupWebView() {
-            self.view.backgroundColor = .white
-            self.view.addSubview(webView)
-            
-            NSLayoutConstraint.activate([
-                webView.topAnchor
-                    .constraint(equalTo: backButton.bottomAnchor),
-                webView.leftAnchor
-                    .constraint(equalTo: self.view.safeAreaLayoutGuide.leftAnchor),
-                webView.bottomAnchor
-                    .constraint(equalTo: self.view.bottomAnchor),
-                webView.rightAnchor
-                    .constraint(equalTo: self.view.safeAreaLayoutGuide.rightAnchor)
-            ])
-        }
+        webView.backgroundColor = .black
+        self.view.addSubview(webView)
+        
+        NSLayoutConstraint.activate([
+            webView.topAnchor
+                .constraint(equalTo: backButton.bottomAnchor),
+            webView.leftAnchor
+                .constraint(equalTo: self.view.safeAreaLayoutGuide.leftAnchor),
+            webView.bottomAnchor
+                .constraint(equalTo: self.view.bottomAnchor),
+            webView.rightAnchor
+                .constraint(equalTo: self.view.safeAreaLayoutGuide.rightAnchor)
+        ])
+    }
     
 }
 

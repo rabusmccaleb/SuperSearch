@@ -16,6 +16,7 @@ class ChatGTPTextView: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         self.view.backgroundColor = StyleSingleton.s.ChatGTPGreen
+        self.navigationController?.navigationBar.tintColor = .white
         setupScrollView()
         setupViews()
         questionLabel.text = questionText

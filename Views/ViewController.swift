@@ -7,7 +7,8 @@
 
 import UIKit
 import OpenAISwift
-
+import FirebaseAuth
+import FirebaseStorage
 
 class ViewController: UIViewController, UITextFieldDelegate {
     let appTitle : UILabel = {
@@ -27,18 +28,34 @@ class ViewController: UIViewController, UITextFieldDelegate {
         button.setTitle("Search", for: .normal)
         return button
     }()
+    //
+    let userProfileImage : UIImageView = {
+        var image = UIImageView()
+        return image
+    }()
+    //
+    let userBackgroundImage : UIImageView = {
+        var image = UIImageView()
+        return image
+    }()
+    
+    var imagePicker = UIImagePickerController()
+    var selectingImageType : userImageType = .userProfileImage
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
-        self.view.backgroundColor = .black
+        BackendSinglton.s.checkIfSignedIn()
+        setImageViews()
+        //
+        self.view.backgroundColor = StyleSingleton.s.mainViewBackgroundColor
         let safeArea = self.view.safeAreaLayoutGuide
         appTitle.text = AppConstants.s.appName
-        appTitle.font = StyleSingleton.s.fontType(fonts: .AvenirNextBold, fontSize: 17)
+        appTitle.font = StyleSingleton.s.fontType(fonts: .AvenirNextBold, fontSize: 22)
         appTitle.translatesAutoresizingMaskIntoConstraints = false
         self.view.addSubview(appTitle)
         appTitle.centerXAnchor.constraint(equalTo: self.view.centerXAnchor).isActive = true
-        appTitle.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: 20).isActive = true
+        appTitle.centerYAnchor.constraint(equalTo: userProfileImage.centerYAnchor).isActive = true
         
         //textFeild
         textFeild.font = StyleSingleton.s.fontType(fonts: .AvenirNextBold, fontSize: 17)
@@ -47,6 +64,9 @@ class ViewController: UIViewController, UITextFieldDelegate {
         textFeild.centerXAnchor.constraint(equalTo: self.view.centerXAnchor).isActive = true
         textFeild.topAnchor.constraint(equalTo: appTitle.bottomAnchor, constant: 40).isActive = true
         textFeild.placeholder = "Search..."
+        textFeild.delegate = self
+        //
+        hideKeyboardIfViewTapped()
         
         superSearch.titleLabel?.font = StyleSingleton.s.fontType(fonts: .AvenirNextBold, fontSize: 20)
         superSearch.translatesAutoresizingMaskIntoConstraints = false
@@ -87,8 +107,19 @@ class ViewController: UIViewController, UITextFieldDelegate {
         //
         AddTargets()
         superSearch.addTarget(self, action: #selector(search), for: .touchUpInside)
+        //
     }
     
+    func hideKeyboardIfViewTapped() {
+        let tap = UITapGestureRecognizer(target: self, action: #selector(UIInputViewController.dismissKeyboard))
+        self.view.isUserInteractionEnabled = true
+        self.view.addGestureRecognizer(tap)
+    }
+    
+    @objc func dismissKeyboard() {
+        //Causes the view (or one of its embedded text fields) to resign the first responder status.
+        view.endEditing(true)
+    }
     // Query Buttons :
     var searchQuery : String = ""
     var chatGTPContentText : String = ""
@@ -122,7 +153,6 @@ class ViewController: UIViewController, UITextFieldDelegate {
         ChatBotGTPImageCard.leadingAnchor.constraint(equalTo: youtubeImageCard.trailingAnchor, constant: cardSpacing).isActive = true
         // Adding the needed targets to allow the image cards to be clicked
         addSuperQueryTargets()
-        
     }
     
     func styleCards(imageCard : UIImageView, cardSpacing : CGFloat) {
@@ -217,17 +247,19 @@ class ViewController: UIViewController, UITextFieldDelegate {
         })
     }
     
-    //
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-       textField.resignFirstResponder()
-       return true
-    }
-    
     @objc func search() {
-        if textFeild.text != nil {
+        if textFeild.text != nil && textFeild.text != "" {
             performOpenAiSearchRequest(query: textFeild.text!)
             searchQuery = textFeild.text!
+            hideKeyboardIfViewTapped()
         }
+    }
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        search()
+        self.view.endEditing(true)
+        textField.resignFirstResponder()
+        return false
     }
     
     func performOpenAiSearchRequest(query: String) {
@@ -320,5 +352,105 @@ class ViewController: UIViewController, UITextFieldDelegate {
     }
 }
 
+// Image Setup
+extension ViewController {
+    func setImageViews() {
+        let safeArea = self.view.safeAreaLayoutGuide
+        let profileImageDimensions : CGFloat = 40
+        userProfileImage.translatesAutoresizingMaskIntoConstraints = false
+        userBackgroundImage.translatesAutoresizingMaskIntoConstraints = false
+        //
+        self.view.addSubview(userBackgroundImage)
+        self.view.addSubview(userProfileImage)
+        //
+        userBackgroundImage.topAnchor.constraint(equalTo: self.view.topAnchor).isActive = true
+        userBackgroundImage.leadingAnchor.constraint(equalTo: self.view.leadingAnchor).isActive = true
+        userBackgroundImage.bottomAnchor.constraint(equalTo: self.view.bottomAnchor).isActive = true
+        userBackgroundImage.trailingAnchor.constraint(equalTo: self.view.trailingAnchor).isActive = true
+        userBackgroundImage.backgroundColor = StyleSingleton.s.mainViewBackgroundColor
+        userBackgroundImage.contentMode = .scaleAspectFill
+        userBackgroundImage.layer.opacity = 0.25
+        userBackgroundImage.addBlur()
+        
+//        addBlurToImageView(imageView: userBackgroundImage)
+        //
+        updateViewImages()
+        //
+        userProfileImage.topAnchor.constraint(equalTo: safeArea.topAnchor, constant: 4).isActive = true
+        userProfileImage.leadingAnchor.constraint(equalTo: self.view.leadingAnchor, constant: 20).isActive = true
+        userProfileImage.heightAnchor.constraint(equalToConstant: profileImageDimensions).isActive = true
+        userProfileImage.widthAnchor.constraint(equalToConstant: profileImageDimensions).isActive = true
+        userProfileImage.layer.cornerRadius = 19.5
+        userProfileImage.clipsToBounds = true
+        userProfileImage.backgroundColor = .lightGray
+        let userProfileGesture = UITapGestureRecognizer(target: self, action: #selector(pullUpImagePicker_profileImage))
+        userProfileImage.isUserInteractionEnabled = true
+        userProfileImage.addGestureRecognizer(userProfileGesture)
+    }
+    
+    @objc func pullUpImagePicker_profileImage() {
+        selectingImageType = .userProfileImage
+        pullupImagePicker()
+    }
+    
+    @objc func pullUpImagePicker_backgroundImage() {
+        selectingImageType = .userBackgroundImage
+        pullupImagePicker()
+    }
+    
+    func addBlurToImageView(imageView : UIImageView) {
+        let blurEffect = UIBlurEffect(style: UIBlurEffect.Style.dark)
+        let blurView = UIVisualEffectView(effect: blurEffect)
+        blurView.frame = imageView.bounds
+        imageView.addSubview(blurView)
+    }
+    
+    func updateViewImages() {
+        getImage(imageType: .userProfileImage, imageView: userProfileImage)
+        getImage(imageType: .userProfileImage, imageView: userBackgroundImage)
+    }
+    
+    func getImage(imageType : userImageType, imageView : UIImageView) {
+        Auth.auth().addStateDidChangeListener() { auth, user in
+            if user != nil {
+                let userId = user!.uid
+                let imagePath : String = (imageType == userImageType.userProfileImage) ? AppConstants.s.profileImagePath : AppConstants.s.userbackgroundImagePath
+                let storageRef = BackendSinglton.s.storage.reference().child("\(imagePath)/\(userId)")
+                storageRef.getData(maxSize: 1 * 1024 * 1024) { data, error in
+                    if let error = error {
+                        print(error)
+                    } else {
+                        imageView.image = UIImage(data: data!)
+                    }
+                }
+            }
+        }
+    }
+}
 
 
+extension ViewController :  UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+    func pullupImagePicker() {
+        if UIImagePickerController.isSourceTypeAvailable(.savedPhotosAlbum){
+            imagePicker.delegate = self
+            imagePicker.allowsEditing = true
+            present(imagePicker, animated: true, completion: nil)
+        }
+    }
+
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        self.dismiss(animated: true, completion: nil)
+        if let image = info[.originalImage] as? UIImage {
+            if selectingImageType  == userImageType.userProfileImage {
+                BackendSinglton.s.uploadImage(imageType: .userProfileImage, image: image)
+                userProfileImage.image = image
+                userBackgroundImage.image = image
+            }
+            if selectingImageType == userImageType.userBackgroundImage {
+                BackendSinglton.s.uploadImage(imageType: .userProfileImage, image: image)
+                userBackgroundImage.image = image
+            }
+        }
+    }
+    
+}

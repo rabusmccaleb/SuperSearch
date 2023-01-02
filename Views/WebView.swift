@@ -21,8 +21,10 @@ class WebView: UIViewController, WKNavigationDelegate, WKUIDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        self.navigationController?.navigationBar.isHidden = true
         self.view.backgroundColor = .black
-        setupUI()
+        setUpBackButton()
+        setupWebView()
 
         let url = URL(string: webURL.rawValue)!
 
@@ -32,14 +34,39 @@ class WebView: UIViewController, WKNavigationDelegate, WKUIDelegate {
         
     }
     
+    let backButton : UIButton = {
+        let button = UIButton()
+        button.setTitle("Back", for: .normal)
+        button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = StyleSingleton.s.fontType(fonts: .AvenirNextDemiBold, fontSize: 12)
+        button.backgroundColor = .black
+        return button
+    }()
     
-    func setupUI() {
-        self.view.backgroundColor = .white
+    func setUpBackButton() {
+        backButton.translatesAutoresizingMaskIntoConstraints = false
+        self.view.addSubview(backButton)
+        backButton.topAnchor.constraint(equalTo: self.view.topAnchor).isActive = true
+        backButton.leadingAnchor.constraint(equalTo: self.view.leadingAnchor).isActive = true
+        backButton.trailingAnchor.constraint(equalTo: self.view.trailingAnchor).isActive = true
+        backButton.heightAnchor.constraint(equalToConstant: 40).isActive = true
+        backButton.addTarget(self, action: #selector(dismissView), for: .touchUpInside)
+    }
+    
+    @objc func dismissView() {
+        self.navigationController?.popViewController(animated: true)
+    }
+    
+    func setupWebView() {
+        webView.backgroundColor = .black
         self.view.addSubview(webView)
-        
+        //
+        webView.layer.cornerRadius = 8
+        webView.clipsToBounds = true
+        //
         NSLayoutConstraint.activate([
             webView.topAnchor
-                .constraint(equalTo: self.view.safeAreaLayoutGuide.topAnchor),
+                .constraint(equalTo: backButton.bottomAnchor),
             webView.leftAnchor
                 .constraint(equalTo: self.view.safeAreaLayoutGuide.leftAnchor),
             webView.bottomAnchor
