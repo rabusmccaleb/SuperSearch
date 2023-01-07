@@ -62,6 +62,9 @@ class WebQueryView : UIViewController, WKNavigationDelegate, WKUIDelegate {
     func setupWebView() {
         webView.backgroundColor = .black
         self.view.addSubview(webView)
+        //
+        webView.layer.cornerRadius = 8
+        webView.clipsToBounds = true
         
         NSLayoutConstraint.activate([
             webView.topAnchor
